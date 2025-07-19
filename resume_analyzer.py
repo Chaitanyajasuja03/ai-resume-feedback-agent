@@ -1,7 +1,7 @@
 import openai
 import streamlit as st
 
-# ✅ Correct for OpenAI SDK v1.x
+# ✅ Initialize OpenAI client with v1.x format
 client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 def analyze_resume(resume_text):
@@ -19,6 +19,7 @@ Please give detailed feedback including:
 
 Respond professionally and helpfully.
 """
+
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
