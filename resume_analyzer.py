@@ -1,7 +1,8 @@
 import openai
 import streamlit as st
 
-client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# Load API key securely from Streamlit secrets
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 def analyze_resume(resume_text):
     prompt = f"""
@@ -19,13 +20,16 @@ Please give detailed feedback including:
 Respond professionally and helpfully.
 """
 
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "You are an expert resume analyzer."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.7
-    )
-
-    return response.choices[0].message.content
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # Use "gpt-4" if available
+            messages=[
+                {"role": "system", "content": "You are an expert resume analyzer."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7
+        )
+        return response['choices'][0]['message']['content']
+    
+    except openai.error.OpenAIError as e:
+        return f"Error analyzing resume: {str(e)}"
