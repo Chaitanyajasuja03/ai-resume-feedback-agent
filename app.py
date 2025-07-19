@@ -1,52 +1,52 @@
 import streamlit as st
 import PyPDF2
-import openai
+import io
+from openai import OpenAI
 
-st.set_page_config(page_title="AI Resume Feedback Agent")
-
-# Load OpenAI API key securely
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+# Initialize OpenAI client with API key from Streamlit secrets
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 st.title("📄 AI Resume Feedback Agent")
-st.markdown("Upload your resume and get instant feedback powered by **OpenAI GPT**!")
+st.write("Upload your resume and get instant feedback powered by OpenAI GPT!")
 
 uploaded_file = st.file_uploader("Upload your resume (PDF or TXT)", type=["pdf", "txt"])
 
-if uploaded_file:
-    resume_text = ""
-
-    if uploaded_file.name.endswith(".pdf"):
-        pdf_reader = PyPDF2.PdfReader(uploaded_file)
+# Extract text from PDF
+def extract_text(file):
+    if file.name.endswith(".txt"):
+        return file.read().decode("utf-8")
+    elif file.name.endswith(".pdf"):
+        pdf_reader = PyPDF2.PdfReader(file)
+        text = ""
         for page in pdf_reader.pages:
-            resume_text += page.extract_text() or ""
+            text += page.extract_text()
+        return text
     else:
-        resume_text = uploaded_file.read().decode("utf-8")
+        return ""
 
+# Analyze resume using OpenAI
+def analyze_resume(resume_text):
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a professional resume reviewer."},
+                {"role": "user", "content": f"Please review this resume and provide detailed feedback:\n\n{resume_text}"}
+            ],
+            temperature=0.7
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+# Main App Logic
+if uploaded_file is not None:
+    resume_text = extract_text(uploaded_file)
     st.subheader("📃 Extracted Resume Text")
     with st.expander("Click to view"):
-        st.text_area("Resume Text", resume_text, height=300)
+        st.write(resume_text)
 
     st.subheader("🔍 GPT Feedback")
-    with st.spinner("Analyzing resume..."):
-
-        try:
-            messages = [
-                {"role": "system", "content": "You are a professional resume reviewer. Provide detailed, constructive feedback."},
-                {"role": "user", "content": f"Please give me resume feedback for this:\n\n{resume_text}"}
-            ]
-
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",  # or "gpt-4" if you have access
-                messages=messages,
-                temperature=0.7,
-                max_tokens=1000
-            )
-
-            feedback = response.choices[0].message.content
-            st.success("Resume analyzed successfully!")
-            st.write(feedback)
-
-        except openai.error.AuthenticationError:
-            st.error("❌ Invalid OpenAI API Key. Please check your secrets.")
-        except Exception as e:
-            st.error(f"Unexpected error: {e}")
+    with st.spinner("Analyzing your resume..."):
+        feedback = analyze_resume(resume_text)
+        st.write(feedback)
