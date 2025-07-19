@@ -1,8 +1,8 @@
-from openai import OpenAI
+import openai
 import streamlit as st
 
-# Create OpenAI client using secret key
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# ✅ This works for OpenAI SDK v0.x
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 def analyze_resume(resume_text):
     prompt = f"""
@@ -19,12 +19,12 @@ Please give detailed feedback including:
 
 Respond professionally and helpfully.
 """
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",  # fallback if GPT-4 isn't enabled
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",  # Or gpt-4 if you have access
         messages=[
             {"role": "system", "content": "You are an expert resume analyzer."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.7
     )
-    return response.choices[0].message.content
+    return response.choices[0].message["content"]
