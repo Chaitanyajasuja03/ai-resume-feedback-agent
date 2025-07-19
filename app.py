@@ -2,6 +2,8 @@ import streamlit as st
 from resume_analyzer import analyze_resume
 from utils import extract_text_from_pdf, extract_text_from_txt
 
+st.write("✅ Secrets loaded:", st.secrets)
+
 st.set_page_config(page_title="AI Resume Feedback Agent", layout="centered")
 
 st.title("📄 AI Resume Feedback Agent")
