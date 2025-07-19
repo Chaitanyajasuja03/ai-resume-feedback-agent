@@ -26,6 +26,7 @@ if uploaded_file is not None:
     st.subheader("🔍 GPT Feedback")
     with st.spinner("Analyzing your resume..."):
         feedback = analyze_resume(resume_text)
-    st.write("API Key exists?" , "OPENAI_API_KEY" in st.secrets)
-        st.success("Analysis complete!")
-        st.markdown(feedback)
+
+    st.write("API Key exists?", "OPENAI_API_KEY" in st.secrets)
+    st.success("Analysis complete!")
+    st.markdown(feedback)
