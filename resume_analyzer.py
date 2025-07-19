@@ -22,7 +22,7 @@ Respond professionally and helpfully.
 
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # Use "gpt-4" if available
+            model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are an expert resume analyzer."},
                 {"role": "user", "content": prompt}
@@ -31,5 +31,5 @@ Respond professionally and helpfully.
         )
         return response['choices'][0]['message']['content']
     
-    except openai.error.OpenAIError as e:
+    except Exception as e:
         return f"Error analyzing resume: {str(e)}"
