@@ -2,6 +2,8 @@ import streamlit as st
 from resume_analyzer import analyze_resume
 from utils import extract_text_from_pdf, extract_text_from_txt
 import openai
+import os
+os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
 # ✅ Secrets loaded confirmation
 st.set_page_config(page_title="AI Resume Feedback Agent", layout="centered")
