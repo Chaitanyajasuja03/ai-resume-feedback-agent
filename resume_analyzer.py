@@ -1,8 +1,8 @@
-import openai
+from openai import OpenAI
 import streamlit as st
 
-# Set up the OpenAI client correctly
-client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# Create OpenAI client using secret key
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 def analyze_resume(resume_text):
     prompt = f"""
@@ -20,7 +20,7 @@ Please give detailed feedback including:
 Respond professionally and helpfully.
 """
     response = client.chat.completions.create(
-        model="gpt-4",
+        model="gpt-3.5-turbo",  # fallback if GPT-4 isn't enabled
         messages=[
             {"role": "system", "content": "You are an expert resume analyzer."},
             {"role": "user", "content": prompt}
