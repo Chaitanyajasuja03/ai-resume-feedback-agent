@@ -1,64 +1,52 @@
 import streamlit as st
 import PyPDF2
-import requests
-import io
+import openai
 
-# Hugging Face model API
-API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-alpha"
-headers = {
-    "Authorization": f"Bearer {st.secrets['HF_API_TOKEN']}"
-}
+st.set_page_config(page_title="AI Resume Feedback Agent")
 
-# Resume analyzer using Hugging Face LLM
-def analyze_resume(resume_text):
-    prompt = f"""
-You are an expert resume reviewer. Give detailed feedback on the following resume:
+# Load OpenAI API key securely
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-\"\"\"{resume_text}\"\"\"
-
-Feedback must include:
-1. Structure and formatting
-2. Grammar and clarity
-3. Missing key sections
-4. Relevance to tech/AI industry
-5. Suggestions for improvement
-"""
-
-    payload = {
-        "inputs": prompt,
-        "parameters": {"max_new_tokens": 512}
-    }
-
-    response = requests.post(API_URL, headers=headers, json=payload)
-
-    if response.status_code == 200:
-        return response.json()[0]["generated_text"]
-    else:
-        return f"Error analyzing resume:\n\n{response.status_code} - {response.json()}"
-
-# Streamlit app UI
 st.title("📄 AI Resume Feedback Agent")
-st.write("Upload your resume and get instant feedback powered by Hugging Face LLM!")
+st.markdown("Upload your resume and get instant feedback powered by **OpenAI GPT**!")
 
 uploaded_file = st.file_uploader("Upload your resume (PDF or TXT)", type=["pdf", "txt"])
 
 if uploaded_file:
-    st.success(f"Uploaded File: {uploaded_file.name}")
+    resume_text = ""
 
-    if uploaded_file.type == "application/pdf":
-        reader = PyPDF2.PdfReader(uploaded_file)
-        resume_text = ""
-        for page in reader.pages:
-            resume_text += page.extract_text()
+    if uploaded_file.name.endswith(".pdf"):
+        pdf_reader = PyPDF2.PdfReader(uploaded_file)
+        for page in pdf_reader.pages:
+            resume_text += page.extract_text() or ""
     else:
         resume_text = uploaded_file.read().decode("utf-8")
 
     st.subheader("📃 Extracted Resume Text")
     with st.expander("Click to view"):
-        st.text(resume_text)
+        st.text_area("Resume Text", resume_text, height=300)
 
-    if st.button("🔍 Analyze Resume"):
-        with st.spinner("Analyzing with Hugging Face LLM..."):
-            feedback = analyze_resume(resume_text)
-        st.subheader("🔍 GPT Feedback")
-        st.write(feedback)
+    st.subheader("🔍 GPT Feedback")
+    with st.spinner("Analyzing resume..."):
+
+        try:
+            messages = [
+                {"role": "system", "content": "You are a professional resume reviewer. Provide detailed, constructive feedback."},
+                {"role": "user", "content": f"Please give me resume feedback for this:\n\n{resume_text}"}
+            ]
+
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",  # or "gpt-4" if you have access
+                messages=messages,
+                temperature=0.7,
+                max_tokens=1000
+            )
+
+            feedback = response.choices[0].message.content
+            st.success("Resume analyzed successfully!")
+            st.write(feedback)
+
+        except openai.error.AuthenticationError:
+            st.error("❌ Invalid OpenAI API Key. Please check your secrets.")
+        except Exception as e:
+            st.error(f"Unexpected error: {e}")
