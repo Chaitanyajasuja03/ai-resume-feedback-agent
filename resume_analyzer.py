@@ -1,35 +1,71 @@
-import requests
 import streamlit as st
-import json
+import PyPDF2
+import openai
+import os
 
-API_URL = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
+# Load API key from Streamlit secrets
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-headers = {
-    "Authorization": f"Bearer {st.secrets['HF_API_TOKEN']}",
-    "Content-Type": "application/json"
-}
+st.set_page_config(page_title="📄 AI Resume Feedback Agent")
 
-def analyze_resume(resume_text):
-    prompt = f"Give detailed, professional feedback on the following resume:\n\n{resume_text}"
-    payload = {
-        "inputs": prompt,
-        "options": {"wait_for_model": True}
-    }
+st.title("📄 AI Resume Feedback Agent")
+st.write("Upload your resume and get instant feedback powered by OpenAI GPT!")
 
-    response = requests.post(API_URL, headers=headers, data=json.dumps(payload))
+# File uploader
+uploaded_file = st.file_uploader("Upload your resume (PDF or TXT)", type=["pdf", "txt"])
 
-    # Print raw response for debugging
-    print("Raw response text:", response.text)
+def extract_text_from_pdf(pdf_file):
+    reader = PyPDF2.PdfReader(pdf_file)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text()
+    return text
 
+def extract_text(file):
+    if file.name.endswith(".txt"):
+        return file.read().decode("utf-8")
+    elif file.name.endswith(".pdf"):
+        return extract_text_from_pdf(file)
+    else:
+        return ""
+
+def analyze_resume(text):
     try:
-        output = response.json()
-    except json.decoder.JSONDecodeError:
-        return f"❌ JSON Decode Error:\nStatus: {response.status_code}\nRaw response: {response.text}"
+        prompt = (
+            "You are a professional career coach. Review the following resume and provide constructive feedback, "
+            "highlight strengths, weaknesses, and suggestions for improvement:\n\n"
+            f"{text}"
+        )
 
-    if response.status_code != 200:
-        return f"❌ API Error:\nStatus: {response.status_code}\nDetails: {output}"
+        response = openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful AI career assistant."},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.7,
+            max_tokens=800
+        )
 
-    if isinstance(output, list) and 'generated_text' in output[0]:
-        return output[0]['generated_text']
+        return response.choices[0].message.content.strip()
 
-    return f"⚠️ Unexpected response:\n{output}"
+    except Exception as e:
+        return f"Error analyzing resume: {str(e)}"
+
+# Main logic
+if uploaded_file is not None:
+    st.success(f"Uploaded File: {uploaded_file.name}")
+
+    resume_text = extract_text(uploaded_file)
+
+    if resume_text:
+        with st.expander("📃 Extracted Resume Text"):
+            st.write(resume_text)
+
+        with st.spinner("Analyzing with GPT..."):
+            feedback = analyze_resume(resume_text)
+
+        st.subheader("🔍 GPT Feedback")
+        st.write(feedback)
+    else:
+        st.error("Couldn't extract any text from the file.")
