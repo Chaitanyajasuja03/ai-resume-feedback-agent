@@ -1,0 +1,2 @@
+.streamlit/secrets.toml
+OPENAI_API_KEY = "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"
