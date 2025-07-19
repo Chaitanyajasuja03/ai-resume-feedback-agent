@@ -2,8 +2,8 @@ import requests
 import streamlit as st
 import json
 
-# Hugging Face Inference API (must be a text-generation model)
-API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-alpha"
+# Use Falcon-7B-Instruct, which works with free-tier tokens
+API_URL = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
 
 headers = {
     "Authorization": f"Bearer {st.secrets['HF_API_TOKEN']}",
@@ -23,16 +23,14 @@ def analyze_resume(resume_text):
 
     try:
         output = response.json()
-    except requests.exceptions.JSONDecodeError:
-        return f"❌ Error analyzing resume:\n\n{response.status_code} - Invalid JSON returned by Hugging Face API.\nRaw response:\n{response.text}"
+    except json.decoder.JSONDecodeError:
+        return f"❌ JSON Decode Error:\nStatus: {response.status_code}\nRaw response: {response.text}"
 
     if response.status_code != 200:
-        return f"❌ Error analyzing resume:\n\n{response.status_code} - {output}"
+        return f"❌ API Error:\nStatus: {response.status_code}\nDetails: {output}"
 
-    # Check the expected output structure
+    # Falcon returns generated_text inside list
     if isinstance(output, list) and 'generated_text' in output[0]:
         return output[0]['generated_text']
-    elif isinstance(output, dict) and 'error' in output:
-        return f"❌ API Error: {output['error']}"
-    else:
-        return f"⚠️ Unexpected response structure:\n\n{output}"
+
+    return f"⚠️ Unexpected response:\n{output}"
