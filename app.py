@@ -8,6 +8,8 @@ st.title("📄 AI Resume Feedback Agent")
 st.write("Upload your resume and get instant feedback powered by GPT!")
 
 st.write("✅ Secrets loaded:", "OPENAI_API_KEY" in st.secrets)  # 👈 shows True/False
+st.write("✅ API Key Test", st.secrets["OPENAI_API_KEY"][:5] + "..." + st.secrets["OPENAI_API_KEY"][-5:])
+
 
 uploaded_file = st.file_uploader("Upload your resume (PDF or TXT)", type=["pdf", "txt"])
 
