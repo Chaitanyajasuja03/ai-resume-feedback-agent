@@ -1,11 +1,13 @@
 import requests
 import streamlit as st
+import json
 
-# Replace with any HF LLM that accepts plain text
+# Hugging Face Inference API (must be a text-generation model)
 API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-alpha"
 
 headers = {
-    "Authorization": f"Bearer {st.secrets['HF_API_TOKEN']}"
+    "Authorization": f"Bearer {st.secrets['HF_API_TOKEN']}",
+    "Content-Type": "application/json"
 }
 
 def analyze_resume(resume_text):
@@ -13,7 +15,7 @@ def analyze_resume(resume_text):
     payload = {
         "inputs": prompt,
         "options": {
-            "wait_for_model": True  # This waits if the model is cold-starting
+            "wait_for_model": True
         }
     }
 
@@ -22,9 +24,15 @@ def analyze_resume(resume_text):
     try:
         output = response.json()
     except requests.exceptions.JSONDecodeError:
-        return f"Error analyzing resume:\n\n{response.status_code} - Invalid JSON response"
+        return f"❌ Error analyzing resume:\n\n{response.status_code} - Invalid JSON returned by Hugging Face API.\nRaw response:\n{response.text}"
 
     if response.status_code != 200:
-        return f"Error analyzing resume:\n\n{response.status_code} - {output}"
+        return f"❌ Error analyzing resume:\n\n{response.status_code} - {output}"
 
-    return output[0]['generated_text']
+    # Check the expected output structure
+    if isinstance(output, list) and 'generated_text' in output[0]:
+        return output[0]['generated_text']
+    elif isinstance(output, dict) and 'error' in output:
+        return f"❌ API Error: {output['error']}"
+    else:
+        return f"⚠️ Unexpected response structure:\n\n{output}"
